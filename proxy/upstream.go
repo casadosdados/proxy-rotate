@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"sync"
 	"time"
+	"github.com/casadosdados/proxy-rotate/util"
 )
 
 
