@@ -3,6 +3,7 @@ package proxy
 //reference: https://github.com/elazarl/goproxy/issues/201
 
 import (
+	"context"
 	"github.com/elazarl/goproxy"
 	"log"
 	"net"
@@ -11,6 +12,7 @@ import (
 	"sync"
 	"time"
 	"github.com/casadosdados/proxy-rotate/util"
+	"github.com/casadosdados/socks"
 )
 
 
@@ -30,9 +32,42 @@ func forward(proxy *goproxy.ProxyHttpServer) func(network, addr string) (net.Con
 		}
 
 		toAddr := ProxyList.RandomProxy().Parse()
-		_, err := url.Parse(toAddr)
+		u, err := url.Parse(toAddr)
 		if err != nil {
 			log.Fatal("failed to parse upstream server:", err)
+		}
+
+		if u.Scheme == "socks5" || u.Scheme == "socks4"{
+			dialSocks := socks.Dial(toAddr)
+			return dialSocks(network, addr)
+		}
+
+		dialer := proxy.NewConnectDialToProxy(toAddr)
+		if dialer == nil {
+			panic("nil dialer, invalid uri?")
+		}
+		return dialer(network, addr)
+	}
+	return dial
+}
+
+func forwardContext(proxy *goproxy.ProxyHttpServer) func(ctx2 context.Context, network, addr string) (net.Conn, error)  {
+
+	dial := func(ctx2 context.Context, network, addr string) (net.Conn, error) {
+		// Prevent upstream proxy from being re-directed
+		if i, k := proxyCacheIgnore.Load(addr); i && k {
+			return net.Dial(network, addr)
+		}
+
+		toAddr := ProxyList.RandomProxy().Parse()
+		u, err := url.Parse(toAddr)
+		if err != nil {
+			log.Fatal("failed to parse upstream server:", err)
+		}
+
+		if u.Scheme == "socks5" || u.Scheme == "socks4"{
+			dialSocks := socks.Dial(toAddr)
+			return dialSocks(network, addr)
 		}
 
 		dialer := proxy.NewConnectDialToProxy(toAddr)
@@ -46,9 +81,13 @@ func forward(proxy *goproxy.ProxyHttpServer) func(network, addr string) (net.Con
 
 func NewTransport (proxy *goproxy.ProxyHttpServer) *http.Transport {
 	return &http.Transport{
-		//DialContext:    forward(proxy),
-		Dial:    forward(proxy),
-		DisableKeepAlives:true,
+		DialContext:    		forwardContext(proxy),
+		Dial:    				forward(proxy),
+		DisableKeepAlives:		true,
+		IdleConnTimeout:		90 * time.Second,
+		TLSHandshakeTimeout:	10 * time.Second,
+		ExpectContinueTimeout: 	1 * time.Second,
+		MaxIdleConns:			100,
 	}
 }
 
