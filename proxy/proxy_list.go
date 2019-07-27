@@ -5,6 +5,7 @@ import (
 	"github.com/parnurzeal/gorequest"
 	"errors"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -17,9 +18,9 @@ var URL_PROXY_LIST = map[string]string{
 	"socks5": "https://www.proxy-list.download/api/v1/get?type=socks5",
 }
 const URL_API_IP = "http://ip-api.com/json/"
-const WORKERS_PROXY_LIST = 10
+const WORKERS_PROXY_LIST = 20
 
-
+var FilterByCountry = os.Getenv("COUNTRY")
 
 type Proxy struct {
 	Host string `json:"host"`
@@ -29,11 +30,11 @@ type Proxy struct {
 		AS string `json:"as"`
 		City string `json:"city"`
 		Country string `json:"country"`
-		ContryCode string `json:"contry_code"`
+		ContryCode string `json:"countryCode"`
 		Isp string `json:"isp"`
 		Query string `json:"query"`
 		Region string `json:"region"`
-		RegionName string `json:"region_name"`
+		RegionName string `json:"regionName"`
 		Status string `json:"status"`
 		Timezone string `json:"timezone"`
 		Zip string `json:"zip"`
@@ -61,6 +62,16 @@ func (p *Proxy) Check() error {
 		return errors.New("status response " + p.Info.Status)
 	}
 	return nil
+}
+
+func (p *Proxy) Filter() bool {
+	if FilterByCountry == "" {
+		return true
+	}
+	if strings.ToLower(p.Info.ContryCode) == strings.ToLower(FilterByCountry) {
+		return true
+	}
+	return false
 }
 
 func (p *Proxy) Parse() string {
@@ -116,6 +127,11 @@ func (p *ProxyBucket) newProxy(ch chan *Proxy) {
 				//log.Println("error on check", proxy.Parse(), err)
 				continue
 			}
+		}
+
+		// filter by country code
+		if !proxy.Filter() {
+			continue
 		}
 		//proxy.Schema = "socks5"
 		//log.Println("append new proxy", proxy)
