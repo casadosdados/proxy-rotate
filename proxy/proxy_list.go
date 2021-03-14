@@ -13,9 +13,14 @@ import (
 )
 
 var URL_PROXY_LIST = map[string]string{
-	"http": "https://www.proxy-list.download/api/v1/get?type=http",
-	"socks4": "https://www.proxy-list.download/api/v1/get?type=socks4",
-	"socks5": "https://www.proxy-list.download/api/v1/get?type=socks5",
+	//"http": "https://www.proxy-list.download/api/v1/get?type=http",
+	//"socks4": "https://www.proxy-list.download/api/v1/get?type=socks4",
+	//"socks5": "https://www.proxy-list.download/api/v1/get?type=socks5",
+
+	// new list txt
+	"http": "https://www.proxyscan.io/download?type=http",
+	"socks4": "https://www.proxyscan.io/download?type=socks4",
+	"socks5": "https://www.proxyscan.io/download?type=socks5",
 }
 const URL_API_IP = "http://ip-api.com/json/"
 const WORKERS_PROXY_LIST = 20

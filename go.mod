@@ -1,5 +1,7 @@
 module github.com/casadosdados/proxy-rotate
 
+go 1.15
+
 require (
 	github.com/casadosdados/socks v1.0.1
 	github.com/elazarl/goproxy v0.0.0-20190711103511-473e67f1d7d2
